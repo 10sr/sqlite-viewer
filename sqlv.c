@@ -19,7 +19,7 @@ void check_err(sqlite3* db){
 void print_column(int ix, sqlite3* db, sqlite3_stmt* stmt){
   int n;
   double d;
-  char* str;
+  const unsigned char* str;
 
   int type = sqlite3_column_type(stmt, ix);
 
