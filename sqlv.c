@@ -62,7 +62,7 @@ void print_row(int num, sqlite3* db, sqlite3_stmt* stmt){
   int i = 0;
   int n = sqlite3_column_count(stmt);
 
-  printf("Row %d.\n", num);
+  printf("Row %d:\n", num);
 
   for(i = 0; i < n; i++){
     print_column(i, db, stmt);
@@ -70,14 +70,14 @@ void print_row(int num, sqlite3* db, sqlite3_stmt* stmt){
   printf("\n");
 }
 
-int main(int argc, char** argv){
+void run(char* fname){
   int rc;
   int i = 0;
 
   sqlite3* db;
   sqlite3_stmt* stmt;
 
-  rc = sqlite3_open_v2("Northwind.sqlite", &db, SQLITE_OPEN_READONLY, NULL);
+  rc = sqlite3_open_v2(fname, &db, SQLITE_OPEN_READONLY, NULL);
   /* check_err(db); */
   assert(! rc);
 
@@ -93,6 +93,17 @@ int main(int argc, char** argv){
 
   sqlite3_finalize(stmt);
   sqlite3_close(db);
+
+  return;
+}
+
+int main(int argc, char** argv){
+  if(argc <= 1){
+    fprintf(stderr, "No argument!\n");
+    return 1;
+  }
+
+  run(argv[1]);
 
   return 0;
 }
