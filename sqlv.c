@@ -70,18 +70,28 @@ void print_row(int num, sqlite3* db, sqlite3_stmt* stmt){
   printf("\n");
 }
 
-void run(char* fname){
+void gen_query(char* buf, int len, char* tablename){
+  int n = snprintf(buf, sizeof(char) * len, "select * from %s;", tablename);
+  assert(0 <= n && n < len - 1); /* NULL is not included in n */
+  return;
+}
+
+void run(char* fname, char* tablename){
   int rc;
   int i = 0;
+  int len = 1000;
+  char buf[len];
 
   sqlite3* db;
   sqlite3_stmt* stmt;
+
+  gen_query(buf, len, tablename);
 
   rc = sqlite3_open_v2(fname, &db, SQLITE_OPEN_READONLY, NULL);
   /* check_err(db); */
   assert(! rc);
 
-  rc = sqlite3_prepare_v2(db, "select * from Orders;", -1, &stmt, NULL);
+  rc = sqlite3_prepare_v2(db, buf, -1, &stmt, NULL);
   /* check_err(db); */
   assert(! rc);
 
@@ -98,12 +108,12 @@ void run(char* fname){
 }
 
 int main(int argc, char** argv){
-  if(argc <= 1){
-    fprintf(stderr, "No argument!\n");
+  if(argc <= 2){
+    fprintf(stderr, "2 argument required!\n");
     return 1;
   }
 
-  run(argv[1]);
+  run(argv[1], argv[2]);
 
   return 0;
 }
