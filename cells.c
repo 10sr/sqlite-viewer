@@ -81,6 +81,7 @@ get_column_types(sqlite3_stmt* stmt)
   a = (GType *) malloc(sizeof(GType) * columns);
   for(i = 0; i < columns; i++){
     type = sqlite3_column_type(stmt, i);
+    /* all types are NULL untill sqlite3_step() is executed. */
 
     switch(type){
     case SQLITE_INTEGER:
@@ -289,7 +290,7 @@ create_cells_window (char* filename)
 
   tables = get_tables(db);
 
-  int tn = 0;
+  int tn = 3;
   printf("%s\n", tables[tn]);
   rc = prepare_get_records(db, tables[tn], &stmt);
 
