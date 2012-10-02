@@ -76,6 +76,39 @@ void gen_query(char* buf, int len, char* tablename){
   return;
 }
 
+const unsigned char* get_tablename(sqlite3* db, sqlite3_stmt* stmt){
+  const unsigned char* str;
+
+  int type = sqlite3_column_type(stmt, 0);
+  assert(type == SQLITE_TEXT);
+  str = sqlite3_column_text(stmt, 0);
+  return str;
+}
+
+void print_tables(sqlite3* db){
+  int rc;
+  sqlite3_stmt* stmt;
+  char* query = "SELECT name FROM sqlite_master WHERE type='table'"
+    "UNION ALL SELECT name FROM sqlite_temp_master WHERE type='table'"
+    "ORDER BY name;";
+  const unsigned char* tablename;
+
+  rc = sqlite3_prepare_v2(db, query, -1, &stmt, NULL);
+  assert(! rc);
+  while(1){
+    printf("%d ", 0);
+    rc = sqlite3_step(stmt);
+    printf("%d ", 1);
+    if(rc != SQLITE_ROW){ break; }
+    printf("%d ", 2);
+    tablename = get_tablename(db, stmt);
+    printf("%d ", 3);
+    printf("%s\n", tablename);
+    printf("%d ", 4);
+  }
+  return;
+}
+
 void run(char* fname, char* tablename){
   int rc;
   int i = 0;
@@ -85,20 +118,26 @@ void run(char* fname, char* tablename){
   sqlite3* db;
   sqlite3_stmt* stmt;
 
-  gen_query(buf, len, tablename);
-
   rc = sqlite3_open_v2(fname, &db, SQLITE_OPEN_READONLY, NULL);
   /* check_err(db); */
   assert(! rc);
 
-  rc = sqlite3_prepare_v2(db, buf, -1, &stmt, NULL);
-  /* check_err(db); */
-  assert(! rc);
+  print_tables(db);
 
-  for(i = 0; i < 10; i++){
-    rc = sqlite3_step(stmt);
-    if(rc != SQLITE_ROW){ break; } /* SQLITE_DONE returns no row as well */
-    print_row(i, db, stmt);
+  if(tablename != NULL){
+
+    gen_query(buf, len, tablename);
+
+    rc = sqlite3_prepare_v2(db, buf, -1, &stmt, NULL);
+    /* check_err(db); */
+    assert(! rc);
+
+    for(i = 0; i < 5; i++){
+      rc = sqlite3_step(stmt);
+      if(rc != SQLITE_ROW){ break; } /* SQLITE_DONE returns no row as well */
+      print_row(i, db, stmt);
+    }
+
   }
 
   sqlite3_finalize(stmt);
@@ -108,12 +147,14 @@ void run(char* fname, char* tablename){
 }
 
 int main(int argc, char** argv){
-  if(argc <= 2){
-    fprintf(stderr, "2 argument required!\n");
+  if(argc <= 1){
+    fprintf(stderr, "1 argument required!\n");
     return 1;
+  }else if(argc == 2){
+    run(argv[1], NULL);
+  }else if(argc == 3){
+    run(argv[1], argv[2]);
   }
-
-  run(argv[1], argv[2]);
 
   return 0;
 }

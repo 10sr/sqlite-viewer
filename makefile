@@ -1,7 +1,9 @@
-default : sqlv cells
+default : all
 
-sqlv:
+all : sqlv cells
+
+sqlv: sqlv.c
 	gcc -Wall -g sqlv.c -o sqlv `pkg-config sqlite3 --cflags --libs`
 
-cells:
+cells: cells.c
 	gcc -Wall -g cells.c -o cells `pkg-config gtk+-2.0 --cflags --libs`
