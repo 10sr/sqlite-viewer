@@ -96,16 +96,12 @@ void print_tables(sqlite3* db){
   rc = sqlite3_prepare_v2(db, query, -1, &stmt, NULL);
   assert(! rc);
   while(1){
-    printf("%d ", 0);
     rc = sqlite3_step(stmt);
-    printf("%d ", 1);
     if(rc != SQLITE_ROW){ break; }
-    printf("%d ", 2);
     tablename = get_tablename(db, stmt);
-    printf("%d ", 3);
     printf("%s\n", tablename);
-    printf("%d ", 4);
   }
+  sqlite3_finalize(stmt);
   return;
 }
 
@@ -137,10 +133,10 @@ void run(char* fname, char* tablename){
       if(rc != SQLITE_ROW){ break; } /* SQLITE_DONE returns no row as well */
       print_row(i, db, stmt);
     }
+    sqlite3_finalize(stmt);
 
   }
 
-  sqlite3_finalize(stmt);
   sqlite3_close(db);
 
   return;
