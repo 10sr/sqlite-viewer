@@ -1,17 +1,11 @@
-/*
- * Compile with:
- *  gcc -o helloworld helloworld.c `pkg-config --cflags --libs gtk+-2.0`
- *
- */
-
 #include <gtk/gtk.h>
 
 enum
-{
-  COL_NAME = 0,
-  COL_AGE,
-  NUM_COLS
-} ;
+  {
+    COL_NAME = 0,
+    COL_AGE,
+    NUM_COLS
+  } ;
 
 
 static GtkTreeModel *
@@ -88,11 +82,32 @@ create_view_and_model (void)
   return view;
 }
 
+static GtkWidget *
+create_scrolled_window (void)
+{
+  GtkWidget *scrolled_window;
+
+  /* 新しくスクロールドウィンドウを作成 */
+  scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+
+  gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 10);
+
+  /* ポリシーは GTK_POLICY AUTOMATIC か GTK_POLICY_ALWAYS のどちらかである。
+   * GTK_POLICY_AUTOMATIC は自動的にスクロールバーが必要か判断するのに対し、
+   * GTK_POLICY_ALWAYS は常にスクロールバーを表示する。
+   * 最初に設定しているのが水平方向で、次が垂直方向である。*/
+
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+                                  GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+
+  return scrolled_window;
+}
 
 int
 main (int argc, char **argv)
 {
   GtkWidget *window;
+  GtkWidget *scrolled_window;
   GtkWidget *view;
 
   gtk_init (&argc, &argv);
@@ -100,9 +115,15 @@ main (int argc, char **argv)
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   g_signal_connect (window, "delete_event", gtk_main_quit, NULL); /* dirty */
 
+  scrolled_window = create_scrolled_window();
+  gtk_container_add (GTK_CONTAINER (window), scrolled_window);
+  /* this is done with gtk_widget_show_all? */
+  /* gtk_widget_show (scrolled_window); */
+
   view = create_view_and_model ();
 
-  gtk_container_add (GTK_CONTAINER (window), view);
+  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window),
+                                         view);
 
   gtk_widget_show_all (window);
 
