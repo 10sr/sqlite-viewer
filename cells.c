@@ -18,18 +18,18 @@ list_store_set_value_from_stmt (GtkListStore* store, GtkTreeIter* iter_t, sqlite
   int n;
   double d;
   const unsigned char* str;
-  void* value;
+  void* value = NULL;
+
+  /* n = (int*) malloc(sizeof(int)); */
 
   int type = sqlite3_column_type(stmt, column);
 
   switch(type){
   case SQLITE_INTEGER:
     n = sqlite3_column_int(stmt, column);
-    value = &n;
     break;
   case SQLITE_FLOAT:
     d = sqlite3_column_double(stmt, column);
-    value = &d;
     break;
   case SQLITE_TEXT:
     str = sqlite3_column_text(stmt, column);
@@ -37,19 +37,21 @@ list_store_set_value_from_stmt (GtkListStore* store, GtkTreeIter* iter_t, sqlite
     value = (char *) str;
     break;
   case SQLITE_BLOB:
-    printf("\n");
-    value = NULL;
+    value = "BLOB";
     break;
   case SQLITE_NULL:
-    printf("\n");
-    value = NULL;
+    value = "NULL";
     break;
   default:
     printf("Unknown type.\n");
-    value = NULL;
+    value = "UNKNOWN";
     break;
   }
-  gtk_list_store_set_value(store, iter_t, column, value);
+  if(value == NULL){
+    gtk_list_store_set(store, iter_t, column, n, -1);
+  }else{
+    gtk_list_store_set(store, iter_t, column, value, -1);
+  }
 }
 
   int
@@ -79,6 +81,7 @@ get_column_types(sqlite3_stmt* stmt)
   a = (GType *) malloc(sizeof(GType) * columns);
   for(i = 0; i < columns; i++){
     type = sqlite3_column_type(stmt, i);
+    /* all types are NULL untill sqlite3_step() is executed. */
 
     switch(type){
     case SQLITE_INTEGER:
@@ -88,16 +91,16 @@ get_column_types(sqlite3_stmt* stmt)
       a[i] = G_TYPE_FLOAT;
       break;
     case SQLITE_TEXT:
-      a[i] = G_TYPE_CHAR;
+      a[i] = G_TYPE_STRING;
       break;
     case SQLITE_BLOB:
-      a[i] = G_TYPE_NONE;
+      a[i] = G_TYPE_STRING;
       break;
     case SQLITE_NULL:
-      a[i] = G_TYPE_NONE;
+      a[i] = G_TYPE_STRING;
       break;
     default:
-      a[i] = G_TYPE_NONE;
+      a[i] = G_TYPE_STRING;
       break;
     }
   }
@@ -287,7 +290,9 @@ create_cells_window (char* filename)
 
   tables = get_tables(db);
 
-  rc = prepare_get_records(db, tables[0], &stmt);
+  int tn = 3;
+  printf("%s\n", tables[tn]);
+  rc = prepare_get_records(db, tables[tn], &stmt);
 
   view = create_view_and_model(stmt);
 
@@ -305,5 +310,6 @@ main (int argc, char **argv)
   gtk_init (&argc, &argv);
   assert(argc >= 2);
   create_cells_window (argv[1]);
+  gtk_main();
   return 0;
 }
