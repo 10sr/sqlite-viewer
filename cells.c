@@ -1,103 +1,112 @@
-/* example-start helloworld helloworld.c */
+/*
+ * Compile with:
+ *  gcc -o helloworld helloworld.c `pkg-config --cflags --libs gtk+-2.0`
+ *
+ */
 
 #include <gtk/gtk.h>
 
-/* これはコールバック関数。引数 data はこの例では使用していない。
-   以下、コールバック関数の定義が続く。 */
-
-void hello( GtkWidget *widget,
-            gpointer   data )
+enum
 {
-  g_print ("Hello World\n");
+  COL_NAME = 0,
+  COL_AGE,
+  NUM_COLS
+} ;
+
+
+static GtkTreeModel *
+create_and_fill_model (void)
+{
+  GtkListStore  *store;
+  GtkTreeIter    iter;
+
+  store = gtk_list_store_new (NUM_COLS, G_TYPE_STRING, G_TYPE_UINT);
+
+  /* Append a row and fill in some data */
+  gtk_list_store_append (store, &iter);
+  gtk_list_store_set (store, &iter,
+                      COL_NAME, "Heinz El-Mann",
+                      COL_AGE, 51,
+                      -1);
+
+  /* append another row and fill in some data */
+  gtk_list_store_append (store, &iter);
+  gtk_list_store_set (store, &iter,
+                      COL_NAME, "Jane Doe",
+                      COL_AGE, 23,
+                      -1);
+
+  /* ... and a third row */
+  gtk_list_store_append (store, &iter);
+  gtk_list_store_set (store, &iter,
+                      COL_NAME, "Joe Bungop",
+                      COL_AGE, 91,
+                      -1);
+
+  return GTK_TREE_MODEL (store);
 }
 
-gint delete_event( GtkWidget *widget,
-                   GdkEvent  *event,
-                   gpointer   data )
+static GtkWidget *
+create_view_and_model (void)
 {
-  /* "delete_event" のシグナルハンドラから FALSE を返すと、
-     GTK は "destroy (破壊)" シグナルを発行する。
-     TRUE を返すと、このウィンドウを破壊して欲しくないことを
-     意味する。これは、「本当に終了していいですか？」と
-     ポップアップ表示するような場合に便利である。
-  */
+  GtkCellRenderer     *renderer;
+  GtkTreeModel        *model;
+  GtkWidget           *view;
 
-  g_print ("delete event occurred\n");
+  view = gtk_tree_view_new ();
 
-  /* この TRUE を FALSE に変えると、メインウィンドウは
-     "delete_event" で終了するようになる。*/
+  /* --- Column #1 --- */
 
-  return(TRUE);
+  renderer = gtk_cell_renderer_text_new ();
+  gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view),
+                                               -1,
+                                               "Name",
+                                               renderer,
+                                               "text", COL_NAME,
+                                               NULL);
+
+  /* --- Column #2 --- */
+
+  renderer = gtk_cell_renderer_text_new ();
+  gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view),
+                                               -1,
+                                               "Age",
+                                               renderer,
+                                               "text", COL_AGE,
+                                               NULL);
+
+  model = create_and_fill_model ();
+
+  gtk_tree_view_set_model (GTK_TREE_VIEW (view), model);
+
+  /* The tree view has acquired its own reference to the
+   *  model, so we can drop ours. That way the model will
+   *  be freed automatically when the tree view is destroyed */
+
+  g_object_unref (model);
+
+  return view;
 }
 
-/* もうひとつのコールバック */
-void destroy( GtkWidget *widget,
-              gpointer   data )
-{
-  gtk_main_quit();
-}
 
-int main( int   argc,
-          char *argv[] )
+int
+main (int argc, char **argv)
 {
-  /* GtkWidget はウィジェット用のストレージクラスである */
   GtkWidget *window;
-  GtkWidget *button;
+  GtkWidget *view;
 
-  /* これは全ての GTK アプリケーションに必要な呼び出しである。
-     コマンドラインからの引数をパースした後、引数はアプリケーション
-     に返される。*/
-  gtk_init(&argc, &argv);
+  gtk_init (&argc, &argv);
 
-  /* 新しくウィンドウを作る */
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  g_signal_connect (window, "delete_event", gtk_main_quit, NULL); /* dirty */
 
-  /* ウィンドウへ "delete_event" シグナルが送られたら(これは通常、
-     ウィンドウネージャから "close" オプションやタイトルバーの操作に
-     よって送られる)、上で定義した関数 delete_event() を呼出すように
-     設定する。コールバック関数へのデータは NULL で、コールバック
-     関数内では使用していない。*/
-  gtk_signal_connect (GTK_OBJECT (window), "delete_event",
-                      GTK_SIGNAL_FUNC (delete_event), NULL);
+  view = create_view_and_model ();
 
-  /* ここでは "destroy" イベントをシグナルハンドラに接続する。
-     このイベントは、このウィンドウにおいて gtk_widget_destroy() を
-     呼出すか、"delete_event" コールバックが FALSE を返すと発生する。 */
-  gtk_signal_connect (GTK_OBJECT (window), "destroy",
-                      GTK_SIGNAL_FUNC (destroy), NULL);
+  gtk_container_add (GTK_CONTAINER (window), view);
 
-  /* ウィンドウのボーダー幅を設定する。*/
-  gtk_container_set_border_width (GTK_CONTAINER (window), 10);
+  gtk_widget_show_all (window);
 
-  /* 新しく "Hello World" というラベルのついたボタンを作成する */
-  button = gtk_button_new_with_label ("Hello World");
-
-  /* ボタンが "clicked" シグナルを受け取ると、hello() の引数に NULL
-     を渡して呼出すように設定する。関数 hello() は上で定義している。*/
-  gtk_signal_connect (GTK_OBJECT (button), "clicked",
-                      GTK_SIGNAL_FUNC (hello), NULL);
-
-  /* "clicked" シグナルが発行されたら、gtk_widget_destory(window) を
-     呼出してウィンドウを破壊するよう設定している。繰り返しになるが、
-     "destroy" シグナルは、ここか、ウィンドウマネージャから発生する。*/
-  gtk_signal_connect_object (GTK_OBJECT (button), "clicked",
-                             GTK_SIGNAL_FUNC (gtk_widget_destroy),
-                             GTK_OBJECT (window));
-
-  /* ボタンをウィンドウ(gtk コンテナ)にパックする */
-  gtk_container_add (GTK_CONTAINER (window), button);
-
-  /* 最後に新しく作成したウィジェットを表示する */
-  gtk_widget_show (button);
-
-  /* window も表示する */
-  gtk_widget_show (window);
-
-  /* 全ての GTK アプリケーションには必ず gtk_main() がある。
-     処理はここで、イベント(キープレスやマウスイベントなど)が
-     発生するのを待って中断する。*/
   gtk_main ();
 
-  return(0);
+  return 0;
 }
-/* example-end */
