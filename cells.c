@@ -37,11 +37,9 @@ list_store_set_value_from_stmt (GtkListStore* store, GtkTreeIter* iter_t, sqlite
     value = (char *) str;
     break;
   case SQLITE_BLOB:
-    printf("\n");
     value = NULL;
     break;
   case SQLITE_NULL:
-    printf("\n");
     value = NULL;
     break;
   default:
@@ -49,7 +47,8 @@ list_store_set_value_from_stmt (GtkListStore* store, GtkTreeIter* iter_t, sqlite
     value = NULL;
     break;
   }
-  gtk_list_store_set_value(store, iter_t, column, value);
+  value = strdup("aaa");
+  gtk_list_store_set(store, iter_t, column, value, -1);
 }
 
   int
@@ -88,7 +87,7 @@ get_column_types(sqlite3_stmt* stmt)
       a[i] = G_TYPE_FLOAT;
       break;
     case SQLITE_TEXT:
-      a[i] = G_TYPE_CHAR;
+      a[i] = G_TYPE_STRING;
       break;
     case SQLITE_BLOB:
       a[i] = G_TYPE_NONE;
@@ -100,6 +99,7 @@ get_column_types(sqlite3_stmt* stmt)
       a[i] = G_TYPE_NONE;
       break;
     }
+    a[i] = G_TYPE_STRING;
   }
   return a;
 }
@@ -287,6 +287,7 @@ create_cells_window (char* filename)
 
   tables = get_tables(db);
 
+  printf("%s\n", tables[0]);
   rc = prepare_get_records(db, tables[0], &stmt);
 
   view = create_view_and_model(stmt);
@@ -305,5 +306,6 @@ main (int argc, char **argv)
   gtk_init (&argc, &argv);
   assert(argc >= 2);
   create_cells_window (argv[1]);
+  gtk_main();
   return 0;
 }
