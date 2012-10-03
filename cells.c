@@ -1,4 +1,9 @@
 #include <gtk/gtk.h>
+#include<sqlite3.h>
+#include<stdlib.h>
+#include<string.h>
+
+#include<assert.h>
 
 enum
   {
@@ -7,69 +12,173 @@ enum
     NUM_COLS
   } ;
 
+void
+list_store_set_value_from_stmt (GtkListStore* store, GtkTreeIter* iter_t, sqlite3_stmt* stmt, int column)
+{
+  int n;
+  double d;
+  const unsigned char* str;
+  void* value;
+
+  int type = sqlite3_column_type(stmt, column);
+
+  switch(type){
+  case SQLITE_INTEGER:
+    n = sqlite3_column_int(stmt, column);
+    value = &n;
+    break;
+  case SQLITE_FLOAT:
+    d = sqlite3_column_double(stmt, column);
+    value = &d;
+    break;
+  case SQLITE_TEXT:
+    str = sqlite3_column_text(stmt, column);
+    n = sqlite3_column_bytes(stmt, column);
+    value = (char *) str;
+    break;
+  case SQLITE_BLOB:
+    printf("\n");
+    value = NULL;
+    break;
+  case SQLITE_NULL:
+    printf("\n");
+    value = NULL;
+    break;
+  default:
+    printf("Unknown type.\n");
+    value = NULL;
+    break;
+  }
+  gtk_list_store_set_value(store, iter_t, column, value);
+}
+
+  int
+list_store_value_from_stmt (GtkListStore* store, GtkTreeIter* iter_t, sqlite3_stmt* stmt, int columns)
+{
+  int i;
+  int rc;
+
+  rc = sqlite3_step(stmt);
+  if(rc != SQLITE_ROW){ return rc; }
+
+  for (i = 0; i < columns; i++){
+    list_store_set_value_from_stmt(store, iter_t, stmt, i);
+  }
+
+  return rc;
+}
+
+GType*
+get_column_types(sqlite3_stmt* stmt)
+{
+  int columns = sqlite3_column_count(stmt);
+  GType* a;
+  int i;
+  int type;
+
+  a = (GType *) malloc(sizeof(GType) * columns);
+  for(i = 0; i < columns; i++){
+    type = sqlite3_column_type(stmt, i);
+
+    switch(type){
+    case SQLITE_INTEGER:
+      a[i] = G_TYPE_INT;
+      break;
+    case SQLITE_FLOAT:
+      a[i] = G_TYPE_FLOAT;
+      break;
+    case SQLITE_TEXT:
+      a[i] = G_TYPE_CHAR;
+      break;
+    case SQLITE_BLOB:
+      a[i] = G_TYPE_NONE;
+      break;
+    case SQLITE_NULL:
+      a[i] = G_TYPE_NONE;
+      break;
+    default:
+      a[i] = G_TYPE_NONE;
+      break;
+    }
+  }
+  return a;
+}
 
 static GtkTreeModel *
-create_and_fill_model (void)
+create_and_fill_model (sqlite3_stmt* stmt)
 {
   GtkListStore  *store;
   GtkTreeIter    iter;
 
-  store = gtk_list_store_new (NUM_COLS, G_TYPE_STRING, G_TYPE_UINT);
+  int columns;
+  GType* types;
+  int rc;
 
-  /* Append a row and fill in some data */
-  gtk_list_store_append (store, &iter);
-  gtk_list_store_set (store, &iter,
-                      COL_NAME, "Heinz El-Mann",
-                      COL_AGE, 51,
-                      -1);
+  columns = sqlite3_column_count(stmt);
+  types = get_column_types(stmt);
 
-  /* append another row and fill in some data */
-  gtk_list_store_append (store, &iter);
-  gtk_list_store_set (store, &iter,
-                      COL_NAME, "Jane Doe",
-                      COL_AGE, 23,
-                      -1);
+  store = gtk_list_store_newv (columns, types);
 
-  /* ... and a third row */
-  gtk_list_store_append (store, &iter);
-  gtk_list_store_set (store, &iter,
-                      COL_NAME, "Joe Bungop",
-                      COL_AGE, 91,
-                      -1);
+  while(1){
+    gtk_list_store_append (store, &iter);
+    rc = list_store_value_from_stmt(store, &iter, stmt, columns);
+    if(rc != SQLITE_ROW){ break; }
+  }
 
   return GTK_TREE_MODEL (store);
 }
 
-static GtkWidget *
-create_view_and_model (void)
+void
+tree_view_insert_columns_from_stmt(GtkWidget* view, sqlite3_stmt* stmt)
 {
-  GtkCellRenderer     *renderer;
+  int columns;
+  int i;
+  GtkCellRenderer* renderer;
+
+  columns = sqlite3_column_count(stmt);
+  for(i = 0; i < columns; i++){
+    renderer = gtk_cell_renderer_text_new ();
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(view),
+                                                -1,
+                                                "clmn",
+                                                renderer,
+                                                "text", i,
+                                                NULL);
+  }
+}
+
+static GtkWidget *
+create_view_and_model (sqlite3_stmt* stmt)
+{
+  /* GtkCellRenderer     *renderer; */
   GtkTreeModel        *model;
   GtkWidget           *view;
 
   view = gtk_tree_view_new ();
 
-  /* --- Column #1 --- */
+  tree_view_insert_columns_from_stmt(view, stmt);
 
-  renderer = gtk_cell_renderer_text_new ();
-  gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view),
-                                               -1,
-                                               "Name",
-                                               renderer,
-                                               "text", COL_NAME,
-                                               NULL);
+  /* /\* --- Column #1 --- *\/ */
 
-  /* --- Column #2 --- */
+  /* renderer = gtk_cell_renderer_text_new (); */
+  /* gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), */
+  /*                                              -1, */
+  /*                                              "Name", */
+  /*                                              renderer, */
+  /*                                              "text", COL_NAME, */
+  /*                                              NULL); */
 
-  renderer = gtk_cell_renderer_text_new ();
-  gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view),
-                                               -1,
-                                               "Age",
-                                               renderer,
-                                               "text", COL_AGE,
-                                               NULL);
+  /* /\* --- Column #2 --- *\/ */
 
-  model = create_and_fill_model ();
+  /* renderer = gtk_cell_renderer_text_new (); */
+  /* gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), */
+  /*                                              -1, */
+  /*                                              "Age", */
+  /*                                              renderer, */
+  /*                                              "text", COL_AGE, */
+  /*                                              NULL); */
+
+  model = create_and_fill_model (stmt);
 
   gtk_tree_view_set_model (GTK_TREE_VIEW (view), model);
 
@@ -103,14 +212,67 @@ create_scrolled_window (void)
   return scrolled_window;
 }
 
-int
-main (int argc, char **argv)
+const unsigned char* get_tablename(sqlite3* db, sqlite3_stmt* stmt){
+  const unsigned char* str;
+
+  int type = sqlite3_column_type(stmt, 0);
+  assert(type == SQLITE_TEXT);
+  str = sqlite3_column_text(stmt, 0);
+  return str;
+}
+
+char**
+get_tables(sqlite3* db)
+{
+  int max = 20;
+  int i;
+  char** a;
+
+  int rc;
+  sqlite3_stmt* stmt;
+  char* query = "SELECT name FROM sqlite_master WHERE type='table'"
+    "UNION ALL SELECT name FROM sqlite_temp_master WHERE type='table'"
+    "ORDER BY name;";
+
+  a = (char **) malloc(sizeof(char *) * max);
+
+  rc = sqlite3_prepare_v2(db, query, -1, &stmt, NULL);
+  assert(! rc);
+  for (i = 0; i < max; i++){
+    rc = sqlite3_step(stmt);
+    if(rc != SQLITE_ROW){ break; }
+    a[i] = strdup((char *)get_tablename(db, stmt));
+  }
+  sqlite3_finalize(stmt);
+  return a;
+}
+
+int prepare_get_records(sqlite3* db, char* table, sqlite3_stmt** stmt_t)
+{
+  char* buf;
+  int len = 128;
+  int n;
+  int rc;
+
+  buf = (char *)malloc(sizeof(char) * len);
+  n = snprintf(buf, sizeof(char) * len, "select * from %s;", table);
+  assert(0 <= n && n < len - 1); /* NULL is not included in n */
+
+  rc = sqlite3_prepare_v2(db, buf, -1, stmt_t, NULL);
+  return rc;
+}
+
+void
+create_cells_window (char* filename)
 {
   GtkWidget *window;
   GtkWidget *scrolled_window;
   GtkWidget *view;
 
-  gtk_init (&argc, &argv);
+  sqlite3* db;
+  sqlite3_stmt* stmt;
+  int rc;
+  char** tables;
 
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   g_signal_connect (window, "delete_event", gtk_main_quit, NULL); /* dirty */
@@ -120,14 +282,28 @@ main (int argc, char **argv)
   /* this is done with gtk_widget_show_all? */
   /* gtk_widget_show (scrolled_window); */
 
-  view = create_view_and_model ();
+  rc = sqlite3_open_v2(filename, &db, SQLITE_OPEN_READONLY, NULL);
+  assert(! rc);
+
+  tables = get_tables(db);
+
+  rc = prepare_get_records(db, tables[0], &stmt);
+
+  view = create_view_and_model(stmt);
 
   gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window),
                                          view);
 
   gtk_widget_show_all (window);
 
-  gtk_main ();
+  return;
+}
 
+int
+main (int argc, char **argv)
+{
+  gtk_init (&argc, &argv);
+  assert(argc >= 2);
+  create_cells_window (argv[1]);
   return 0;
 }
