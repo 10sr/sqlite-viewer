@@ -37,11 +37,9 @@ list_store_set_value_from_stmt (GtkListStore* store, GtkTreeIter* iter_t, sqlite
     value = (char *) str;
     break;
   case SQLITE_BLOB:
-    printf("\n");
     value = NULL;
     break;
   case SQLITE_NULL:
-    printf("\n");
     value = NULL;
     break;
   default:
