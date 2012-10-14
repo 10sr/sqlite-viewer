@@ -12,7 +12,7 @@ void psqlite_connect(char* filename, psqlite** db){
   psqlite* new;
 
   new = malloc(sizeof(psqlite));
-  assert(new == NULL);
+  assert(new != NULL);
 
   new->filename = strdup(filename);
   new->rc = sqlite3_open_v2(filename, &(new->con), SQLITE_OPEN_READONLY, NULL);
@@ -160,7 +160,7 @@ void psqlite_table_put_record(psqlite_table* tb, psqlite_data** a){
       new[i].val.d = sqlite3_column_double(tb->stmt, i);
       break;
     case SQLITE_TEXT:
-      new[i].val.s = sqlite3_column_text(tb->stmt, i);
+      new[i].val.s = strdup((char*) sqlite3_column_text(tb->stmt, i));
       /* n = sqlite3_column_bytes(stmt, i); */
       break;
     case SQLITE_BLOB:
