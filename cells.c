@@ -47,7 +47,7 @@ list_store_set_value_from_stmt (GtkListStore* store, GtkTreeIter* iter_t, sqlite
     value = "UNKNOWN";
     break;
   }
-  if(value == NULL){
+  if(value == NULL){            /* never happen? */
     gtk_list_store_set(store, iter_t, column, n, -1);
   }else{
     gtk_list_store_set(store, iter_t, column, value, -1);
