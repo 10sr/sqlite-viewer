@@ -4,7 +4,7 @@
 
 #include<assert.h>
 
-#include<psqlite.h>
+#include"psqlite.h"
 
 enum
   {
@@ -35,7 +35,6 @@ list_store_set_value_from_data (GtkListStore* store, GtkTreeIter* iter_t, psqlit
     break;
   case SQLITE_TEXT:
     str = data->val.s;
-    value = (char *) str;
     gtk_list_store_set(store, iter_t, column, str, -1);
     break;
   case SQLITE_BLOB:
@@ -62,7 +61,7 @@ list_store_value_from_table (GtkListStore* store, GtkTreeIter* iter_t, psqlite_t
     list_store_set_value_from_data(store, iter_t, &(tb->data[i][j]), j);
   }
 
-  return rc;
+  return tb->rc;
 }
 
 GType*
@@ -120,16 +119,16 @@ create_and_fill_model (psqlite_table* tb)
 
   store = gtk_list_store_newv (columns, types);
 
-  for(i = 0; i < tb->data_num, i++){
+  for(i = 0; i < tb->data_num; i++){
     gtk_list_store_append (store, &iter);
-    list_store_value_from_data(store, &iter, tb, i);
+    list_store_value_from_table(store, &iter, tb, i);
   }
 
   return GTK_TREE_MODEL (store);
 }
 
 void
-tree_view_insert_columns_from_tb(GtkWidget* view, psqlite_table* tb)
+tree_view_insert_columns_from_table(GtkWidget* view, psqlite_table* tb)
 {
   int columns;
   int i;
@@ -200,7 +199,6 @@ create_cells_window (char* filename)
 
   psqlite* db;
   psqlite_table* tb;
-  int rc;
 
   window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   g_signal_connect (window, "delete_event", gtk_main_quit, NULL); /* dirty */
