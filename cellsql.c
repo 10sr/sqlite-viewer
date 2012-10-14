@@ -6,6 +6,9 @@
 
 #include"psqlite.h"
 
+#define DEBUG
+#include"mydebug.h"
+
 enum
   {
     COL_NAME = 0,
@@ -16,6 +19,7 @@ enum
 void
 list_store_set_value_from_data (GtkListStore* store, GtkTreeIter* iter_t, psqlite_data* data, int column)
 {
+  dphere();
   int n;
   double d;
   char* str;
@@ -55,6 +59,7 @@ list_store_set_value_from_data (GtkListStore* store, GtkTreeIter* iter_t, psqlit
 int
 list_store_value_from_table (GtkListStore* store, GtkTreeIter* iter_t, psqlite_table* tb, int i)
 {
+  dphere();
   int j;
 
   for (j = 0; j < tb->column_num; j++){
@@ -67,6 +72,7 @@ list_store_value_from_table (GtkListStore* store, GtkTreeIter* iter_t, psqlite_t
 GType*
 get_column_types(psqlite_table* tb)
 {
+  dphere();
   int columns = tb->column_num;
   GType* a;
   int i;
@@ -104,6 +110,7 @@ get_column_types(psqlite_table* tb)
 static GtkTreeModel *
 create_and_fill_model (psqlite_table* tb)
 {
+  dphere();
   GtkListStore  *store;
   GtkTreeIter    iter;
 
@@ -130,6 +137,7 @@ create_and_fill_model (psqlite_table* tb)
 void
 tree_view_insert_columns_from_table(GtkWidget* view, psqlite_table* tb)
 {
+  dphere();
   int columns;
   int i;
   GtkCellRenderer* renderer;
@@ -149,6 +157,7 @@ tree_view_insert_columns_from_table(GtkWidget* view, psqlite_table* tb)
 static GtkWidget *
 create_view_and_model (psqlite_table* tb)
 {
+  dphere();
   /* GtkCellRenderer     *renderer; */
   GtkTreeModel        *model;
   GtkWidget           *view;
@@ -172,6 +181,7 @@ create_view_and_model (psqlite_table* tb)
 static GtkWidget *
 create_scrolled_window (void)
 {
+  dphere();
   GtkWidget *scrolled_window;
 
   /* 新しくスクロールドウィンドウを作成 */
@@ -193,6 +203,7 @@ create_scrolled_window (void)
 void
 create_cells_window (char* filename)
 {
+  dphere();
   GtkWidget *window;
   GtkWidget *scrolled_window;
   GtkWidget *view;
@@ -228,6 +239,7 @@ create_cells_window (char* filename)
 int
 main (int argc, char **argv)
 {
+  dphere();
   gtk_init (&argc, &argv);
   assert(argc >= 2);
   create_cells_window (argv[1]);
