@@ -5,6 +5,9 @@
 #include<stdlib.h>
 #include<assert.h>
 
+#define DEBUG
+#include"mydebug.h"
+
 void psqlite_table_get_columns(psqlite_table* tb);
 void psqlite_table_put_record(psqlite_table* tb, psqlite_data** a);
 
@@ -16,6 +19,8 @@ void psqlite_connect(char* filename, psqlite** db){
 
   new->filename = strdup(filename);
   new->rc = sqlite3_open_v2(filename, &(new->con), SQLITE_OPEN_READONLY, NULL);
+
+  psqlite_get_tables_name(new);
 
   *db = new;
 
@@ -50,6 +55,8 @@ void psqlite_get_tables_name(psqlite* db){
 
   db->tables = a;
   db->table_num = i;
+
+  return;
 }
 
 void psqlite_get_table(psqlite* db, char* tablename, psqlite_table** tb){
@@ -104,14 +111,16 @@ void psqlite_table_get_columns(psqlite_table* tb){
   for (i = 0; i < max; i++){
     tb->rc = sqlite3_step(stmt);
     if(tb->rc != SQLITE_ROW){ break; }
-    type = sqlite3_column_type(stmt, 0);
+    type = sqlite3_column_type(stmt, 1);
     assert(type == SQLITE_TEXT);
-    a[i] = strdup((char *)sqlite3_column_text(stmt, 0));
+    a[i] = strdup((char *)sqlite3_column_text(stmt, 1));
   }
   sqlite3_finalize(stmt);
 
   tb->columns = a;
   tb->column_num = i;
+
+  return;
 }
 
 void psqlite_query(psqlite* db, char* query, psqlite_table** tb){
@@ -122,7 +131,13 @@ void psqlite_table_fetch(psqlite_table* tb, int n){
   int i;
   psqlite_data** aa;
 
-  aa = malloc(sizeof(psqlite_data*) * n);
+  /* n = n || 1028; */
+  if (n == 0) {
+    n = 1028;
+  }
+  dprintf(HERE "%d\n", n);
+
+  aa = (psqlite_data**) malloc(sizeof(psqlite_data*) * n);
   assert(aa != NULL);
 
   if (tb->stmt == NULL){
@@ -130,8 +145,10 @@ void psqlite_table_fetch(psqlite_table* tb, int n){
   }
   assert(! tb->rc);
 
+  dphere();
   for(i = 0; i < n; i++){
     tb->rc = sqlite3_step(tb->stmt);
+    dprintf(HERE "%d, %d, %d\n", n, i, tb->rc);
     if (tb->rc != SQLITE_ROW) { break; }
     psqlite_table_put_record(tb, &(aa[i]));
   }

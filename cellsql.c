@@ -78,10 +78,14 @@ get_column_types(psqlite_table* tb)
   int i;
   int type;
 
+  assert(tb->data_num != 0);
+
   a = (GType *) malloc(sizeof(GType) * columns);
+  assert(a != NULL);
   for(i = 0; i < columns; i++){
     /* all types are NULL untill sqlite3_step() is executed. */
     type = tb->data[0][i].type;
+    dphere();
 
     switch(type){
     case SQLITE_INTEGER:
@@ -119,7 +123,9 @@ create_and_fill_model (psqlite_table* tb)
 
   int i;
 
+  dphere();
   psqlite_table_fetch(tb, 0);
+  dphere();
 
   columns = tb->column_num;
   types = get_column_types(tb);
@@ -129,6 +135,7 @@ create_and_fill_model (psqlite_table* tb)
   for(i = 0; i < tb->data_num; i++){
     gtk_list_store_append (store, &iter);
     list_store_value_from_table(store, &iter, tb, i);
+    dprintf(HERE "%d\n", i);
   }
 
   return GTK_TREE_MODEL (store);
